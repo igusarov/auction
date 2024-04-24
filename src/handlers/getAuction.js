@@ -1,16 +1,11 @@
 import AWS from "aws-sdk";
-import middy from "@middy/core";
-import httpJsonBodyParser from "@middy/http-json-body-parser";
-import httpEventNormalizer from "@middy/http-event-normalizer";
-import httpErrorHandler from "@middy/http-error-handler";
 import crateError from 'http-errors';
+import commonMiddleware from "../lib/commonMiddleware";
 
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
 
-async function getAuction(event, context) {
+export async function getAuctionById(id) {
   let auction;
-
-  const { id } = event.pathParameters;
 
   try {
     const result = await dynamoDB.get({
@@ -27,15 +22,20 @@ async function getAuction(event, context) {
     throw new crateError.NotFound(`Auction with ID "${id}" not found`);
   }
 
+  return auction;
+}
+
+async function getAuction(event, context) {
+  const { id } = event.pathParameters;
+
+  const auction = await getAuctionById(id);
+
   return {
     statusCode: 200,
     body: JSON.stringify(auction),
   };
 }
 
-export const handler = middy(getAuction)
-  .use(httpJsonBodyParser())
-  .use(httpEventNormalizer())
-  .use(httpErrorHandler());
+export const handler = commonMiddleware(getAuction);
 
 
